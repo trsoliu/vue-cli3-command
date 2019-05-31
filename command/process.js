@@ -112,6 +112,6 @@ class Command {
 		}
 	}
 }
-
+//new出执行对象，开始初始化执行
 const command = new Command();
 command.init();
