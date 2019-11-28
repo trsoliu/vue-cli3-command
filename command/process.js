@@ -8,7 +8,7 @@ const {
 } = require('child_process'); //调用shell命令模块
 const compressing = require('compressing'); //压缩模块
 const Client = require('ssh2').Client; //上传服务器模块
-const fs = require('fs')//读写文件
+const fs = require('fs') //读写文件
 const path = require('path');
 const zlib = require("zlib"); //gzip压缩
 
@@ -64,9 +64,9 @@ class Command {
 	uploadServer() {}
 	//gzip压缩
 	gzip(source) {
-		let t=this;
+		let t = this;
 		// 处理输入和输出的文件路径
-//		let sourcePath = path.join(__dirname, source);
+		//		let sourcePath = path.join(__dirname, source);
 		let sourcePath = source;
 		let gzipPath = `${sourcePath}.gz`;
 		// 创建转化流
@@ -78,24 +78,29 @@ class Command {
 		// 实现转化
 		rs.pipe(gzip).pipe(ws);
 	}
+	//改造index.html，在index.html中添加项目版本号功能
+	changHTML() {
+		console.log("开始改造index.html")
+		//删除为改造的index.html.gz压缩包
+		exec(`rm -rf ${t.projectName}/index.html.gz`, function(err1) {});
+		//改造index.html，在<link rel="icon" href="<%= BASE_URL %>favicon.ico" v="%version%">中将%version%替换成版本号加日期
+		fs.readFile(`${t.projectName}/index.html`, 'utf8', function(err, files) {
+			//console.log(files)
+			var result = files.replace(/%version%/g, `${version}_${t.time_stamp}`);
+
+			fs.writeFile(`${t.projectName}/index.html`, result, 'utf8', function(err) {
+				if(err) return console.log(err);
+			});
+			//将改造好的index.html重新压缩成gz包
+			t.gzip(`${t.projectName}/index.html`);
+		});
+	}
 	// zip压缩命令
 	compress() {
 		let t = this;
 		exec(`mkdir zipDir`, function(err) {
-			console.log("开始改造index.html")
-			//删除为改造的index.html.gz压缩包
-			exec(`rm -rf ${t.projectName}/index.html.gz`, function(err1) {});
-			//改造index.html，在<link rel="icon" href="<%= BASE_URL %>favicon.ico" v="%version%">中将%version%替换成版本号加日期
-			fs.readFile(`${t.projectName}/index.html`, 'utf8', function(err, files) {
-				//console.log(files)
-				var result = files.replace(/%version%/g, `${version}_${t.time_stamp}`);
-
-				fs.writeFile(`${t.projectName}/index.html`, result, 'utf8', function(err) {
-					if(err) return console.log(err);
-				});
-				//将改造好的index.html重新压缩成gz包
-				t.gzip(`${t.projectName}/index.html`);
-			});
+			//改造index.html，在index.html中添加项目版本号功能
+			changHTML();
 			//此处第一个参数为要打包的目录, 第二个参数是打包后的文件名
 			compressing.zip.compressDir(`${t.projectName}/`, `zipDir/${t.fileName}.zip`).then(() => {
 				//console.log('*******压缩成功*******',config)
