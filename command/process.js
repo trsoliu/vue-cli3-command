@@ -3,14 +3,14 @@
  * 配置文件 用于配置命令行文件
  * 
  */
-
 const {
 	exec
 } = require('child_process'); //调用shell命令模块
-const {
-	Client
-} = require('ssh2'); //上传服务器模块
 const compressing = require('compressing'); //压缩模块
+const Client = require('ssh2').Client; //上传服务器模块
+const fs = require('fs')//读写文件
+const path = require('path');
+const zlib = require("zlib"); //gzip压缩
 
 const {
 	config //命令配置的参数
@@ -62,11 +62,40 @@ class Command {
 	uploadGit() {}
 	//上传到server
 	uploadServer() {}
-
-	// 压缩命令
+	//gzip压缩
+	gzip(source) {
+		let t=this;
+		// 处理输入和输出的文件路径
+//		let sourcePath = path.join(__dirname, source);
+		let sourcePath = source;
+		let gzipPath = `${sourcePath}.gz`;
+		// 创建转化流
+		let gzip = zlib.createGzip();
+		// 创建可读流
+		let rs = fs.createReadStream(sourcePath);
+		// 创建可写流
+		let ws = fs.createWriteStream(gzipPath);
+		// 实现转化
+		rs.pipe(gzip).pipe(ws);
+	}
+	// zip压缩命令
 	compress() {
 		let t = this;
 		exec(`mkdir zipDir`, function(err) {
+			console.log("开始改造index.html")
+			//删除为改造的index.html.gz压缩包
+			exec(`rm -rf ${t.projectName}/index.html.gz`, function(err1) {});
+			//改造index.html，在<link rel="icon" href="<%= BASE_URL %>favicon.ico" v="%version%">中将%version%替换成版本号加日期
+			fs.readFile(`${t.projectName}/index.html`, 'utf8', function(err, files) {
+				//console.log(files)
+				var result = files.replace(/%version%/g, `${version}_${t.time_stamp}`);
+
+				fs.writeFile(`${t.projectName}/index.html`, result, 'utf8', function(err) {
+					if(err) return console.log(err);
+				});
+				//将改造好的index.html重新压缩成gz包
+				t.gzip(`${t.projectName}/index.html`);
+			});
 			//此处第一个参数为要打包的目录, 第二个参数是打包后的文件名
 			compressing.zip.compressDir(`${t.projectName}/`, `zipDir/${t.fileName}.zip`).then(() => {
 				//console.log('*******压缩成功*******',config)
@@ -82,6 +111,7 @@ class Command {
 				exec(`rm -rf  ${t.projectName}`, function(err1) {});
 				//上传到svn
 				if(config.svn.enable) {
+					console.log("开始执行上传svn的命令")
 					t.uploadSVN()
 				}
 				//上传到git
@@ -99,6 +129,7 @@ class Command {
 	//触发执行命令
 	init() {
 		let t = this;
+		console.log("开始执行项目包压缩命令")
 		if(!!config.keepBuildDir) {
 			//将打包好的文件复制部署文件夹中，此为保留打包文件夹，若不想原打包文件夹可以使用上面文件
 			exec(`cp -r ${t.output} ${t.projectName}`, (err, stdout, stderr) => {
@@ -112,6 +143,6 @@ class Command {
 		}
 	}
 }
-//new出执行对象，开始初始化执行
+
 const command = new Command();
 command.init();
