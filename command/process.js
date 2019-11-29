@@ -80,6 +80,7 @@ class Command {
 	}
 	//改造index.html，在index.html中添加项目版本号功能
 	changHTML() {
+		let t=this;
 		console.log("开始改造index.html")
 		//删除为改造的index.html.gz压缩包
 		exec(`rm -rf ${t.projectName}/index.html.gz`, function(err1) {});
