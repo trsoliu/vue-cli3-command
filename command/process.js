@@ -100,7 +100,7 @@ class Command {
 		let t = this;
 		exec(`mkdir zipDir`, function(err) {
 			//改造index.html，在index.html中添加项目版本号功能
-			changHTML();
+			t.changHTML();
 			//此处第一个参数为要打包的目录, 第二个参数是打包后的文件名
 			compressing.zip.compressDir(`${t.projectName}/`, `zipDir/${t.fileName}.zip`).then(() => {
 				//console.log('*******压缩成功*******',config)
